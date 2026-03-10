@@ -2,6 +2,13 @@
 from fastapi.responses import HTMLResponse
 import os
 from app.api import assets
+from app.core.database import engine, Base
+
+# Import the models so Base metadata has them registered
+from app.models import asset 
+
+# This creates the tables in MySQL if they don't exist
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Asset Management")
 
