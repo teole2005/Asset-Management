@@ -13,6 +13,13 @@ A simple web application for managing assets. The project features a FastAPI bac
   - `/api/action` - A POST endpoint to test backend actions.
   - `/assets/` - Asset management endpoint.
 
+## Quick Start
+To quickly start the server, activate your virtual environment and run:
+```bash
+uvicorn app.main:app --reload
+```
+The application will be available at [http://localhost:8000/page](http://localhost:8000/page).
+
 ## Project Structure
 
 - `app/main.py`: The entry point for the FastAPI application.
