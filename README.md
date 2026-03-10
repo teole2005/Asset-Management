@@ -81,5 +81,5 @@ Follow these exact steps to set up this workspace from scratch.
 
 ### Database
 
-The application is configured to use SQLite out of the box in `app/core/database.py` (`sqlite:///./asset_db.db`). 
-When you run the application for the first time, a database file named `asset_db.db` will be automatically created in the root directory.
+The application is configured to use SQLite out of the box in `app/core/database.py`. 
+When you run the application for the first time, a database file named `asset_db.db` will be automatically created in the `app/data/` directory.
