@@ -6,7 +6,6 @@ A web application for managing IT assets (laptops, desktops, printers, monitors)
 
 - **Asset List** — Searchable, filterable table of all IT assets with status badges
 - **Asset Detail** — Click any row to see full device specs, financials, and assignment info
-- **Data Import** — Converts Excel files into SQLite database automatically
 - **API Endpoints**:
   - `GET /` — Asset list page
   - `GET /detail?id=N` — Asset detail page
@@ -53,24 +52,20 @@ python -m uvicorn app.main:app --reload
 
 ```
 Asset-Management/
-├── import_data.py              # Excel → SQLite import script
 ├── requirements.txt            # Python dependencies
 ├── app/
 │   ├── main.py                 # FastAPI app entry point
 │   ├── api/assets.py           # API routes (list + detail)
 │   ├── core/database.py        # SQLAlchemy engine & session
 │   ├── models/asset.py         # MFITAsset ORM model
-│   ├── data/asset_db.db        # SQLite database (generated)
+│   ├── data/asset_db.db        # SQLite database
 │   └── static/
 │       ├── index.html          # Asset list page
 │       ├── detail.html         # Asset detail page
 │       └── styles.css          # Dark theme styles
-├── MF_IT_Assets_Final.xlsx     # Primary data source
-└── Asset_Search_listing_latest.xlsx  # Supplementary data
 ```
 
 ## Database
 
 - **Table**: `MF_IT_Assets` (268 rows, 28 columns)
 - **Engine**: SQLite at `app/data/asset_db.db`
-- To re-import after Excel changes, stop the server and run `python import_data.py` again.
