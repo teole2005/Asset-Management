@@ -1,85 +1,76 @@
-# Asset Management System
+# MF IT Assets Management System
 
-A simple web application for managing assets. The project features a FastAPI backend with SQLAlchemy for database management using SQLite, and a basic HTML/Bootstrap frontend to test backend actions.
+A web application for managing IT assets (laptops, desktops, printers, monitors). Built with FastAPI + SQLAlchemy (SQLite) backend and a modern dark-themed HTML frontend.
 
 ## Features
 
-- **FastAPI Backend**: Fast, modern, and asynchronous web framework for building APIs.
-- **SQLAlchemy ORM (SQLite)**: Database models implemented for asset management (e.g., `AssetModel`). It leverages SQLite for a lightweight, file-based database.
-- **Basic Frontend**: Includes a simple HTML and Bootstrap 5 frontend to test API actions.
+- **Asset List** — Searchable, filterable table of all IT assets with status badges
+- **Asset Detail** — Click any row to see full device specs, financials, and assignment info
+- **Data Import** — Converts Excel files into SQLite database automatically
 - **API Endpoints**:
-  - `/` - Root endpoint to check API status.
-  - `/page` - Serves the frontend web page (`index.html`).
-  - `/api/action` - A POST endpoint to test backend actions.
-  - `/assets/` - Asset management endpoint.
+  - `GET /` — Asset list page
+  - `GET /detail?id=N` — Asset detail page
+  - `GET /assets/` — JSON list (supports `?search=`, `?status=`, `?type=` filters)
+  - `GET /assets/{id}` — Full asset detail JSON
 
 ## Quick Start
-To quickly start the server, activate your virtual environment and run:
-```bash
-uvicorn app.main:app --reload
+
+### 1. Create and activate virtual environment
+
+**Windows (PowerShell):**
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 ```
-The application will be available at [http://localhost:8000/page](http://localhost:8000/page).
+
+**Windows (Command Prompt):**
+```cmd
+python -m venv venv
+venv\Scripts\activate.bat
+```
+
+**macOS/Linux:**
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+### 2. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Run the server
+```bash
+python -m uvicorn app.main:app --reload
+```
+
+### 4. Open in browser
+- **Asset List**: [http://localhost:8000](http://localhost:8000)
+- **API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ## Project Structure
 
-- `app/main.py`: The entry point for the FastAPI application.
-- `app/api/`: Contains API routers (e.g., `assets.py`).
-- `app/models/`: Contains SQLAlchemy database models (e.g., `asset.py`).
-- `app/core/`: Core configurations like database engine and setup (`database.py`).
-- `app/static/`: Contains static files like `index.html`.
+```
+Asset-Management/
+├── import_data.py              # Excel → SQLite import script
+├── requirements.txt            # Python dependencies
+├── app/
+│   ├── main.py                 # FastAPI app entry point
+│   ├── api/assets.py           # API routes (list + detail)
+│   ├── core/database.py        # SQLAlchemy engine & session
+│   ├── models/asset.py         # MFITAsset ORM model
+│   ├── data/asset_db.db        # SQLite database (generated)
+│   └── static/
+│       ├── index.html          # Asset list page
+│       ├── detail.html         # Asset detail page
+│       └── styles.css          # Dark theme styles
+├── MF_IT_Assets_Final.xlsx     # Primary data source
+└── Asset_Search_listing_latest.xlsx  # Supplementary data
+```
 
-## Getting Started
+## Database
 
-### Prerequisites
-
-- Python 3.8+ (Make sure Python is added to your system PATH)
-- Git (Optional)
-
-### Complete Setup Instructions
-
-Follow these exact steps to set up this workspace from scratch.
-
-1. **Clone the repository (if applicable) and open the directory:**
-   ```bash
-   git clone <repository-url>
-   cd Asset-Management
-   ```
-
-2. **Create a virtual environment:**
-   Creating a virtual environment isolates your project dependencies from the global Python environment.
-   
-   *On Windows:*
-   ```bash
-   python -m venv venv
-   venv\Scripts\activate
-   ```
-   
-   *On macOS/Linux:*
-   ```bash
-   python -m venv venv
-   source venv/bin/activate
-   ```
-
-3. **Install dependencies:**
-   Make sure you are in the virtual environment (you should see `(venv)` in your terminal prompt). Then, install the essential packages:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Run the application:**
-   You can start the Uvicorn server to serve the API and the web page:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
-
-   *(The `--reload` flag ensures the server automatically restarts when you make code changes.)*
-
-### Usage
-
-- Open your browser and navigate to [http://localhost:8000/page](http://localhost:8000/page) to access the frontend application.
-- Explore the interactive API documentation at [http://localhost:8000/docs](http://localhost:8000/docs) (Swagger UI) or [http://localhost:8000/redoc](http://localhost:8000/redoc) (ReDoc).
-
-### Database
-
-The application is configured to use SQLite out of the box in `app/core/database.py`. 
-When you run the application for the first time, a database file named `asset_db.db` will be automatically created in the `app/data/` directory.
+- **Table**: `MF_IT_Assets` (268 rows, 28 columns)
+- **Engine**: SQLite at `app/data/asset_db.db`
+- To re-import after Excel changes, stop the server and run `python import_data.py` again.
