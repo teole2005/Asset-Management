@@ -4,16 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asset Detail — MF IT Assets</title>
-    <meta name="description" content="Detailed view of IT asset information including specifications, assignment, and financial data.">
-    <link rel="stylesheet" href="/static/styles.css?v=2">
+    <meta name="description" content="Detailed view of IT asset information including specifications, assignment, depreciation, and history.">
+    <link rel="stylesheet" href="/static/styles.css?v=4">
 </head>
 <body>
     <div class="container">
         <!-- Back Link -->
-        <a href="/" class="back-link fade-in">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-            Back to Asset List
-        </a>
+        <div class="detail-topbar fade-in">
+            <a href="/" class="back-link">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                Back to Asset List
+            </a>
+            <div class="detail-topbar-actions">
+                <button class="edit-btn" id="editBtn" title="Edit Asset">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Edit
+                </button>
+                <button class="edit-btn danger" id="deleteAssetBtn" title="Delete Asset">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                    </svg>
+                    Delete
+                </button>
+            </div>
+        </div>
 
         <!-- Header -->
         <div class="detail-header fade-in fade-in-delay-1" id="detailHeader">
@@ -77,6 +93,15 @@
                 <div class="detail-fields" id="financialFields"></div>
             </div>
 
+            <!-- Depreciation & Resale -->
+            <div class="detail-section fade-in fade-in-delay-4" id="depreciationSection" style="display:none">
+                <div class="section-header">
+                    <div class="icon orange">📉</div>
+                    Depreciation & Resale Value
+                </div>
+                <div class="depreciation-card" id="depreciationCard"></div>
+            </div>
+
             <!-- Assignment Information -->
             <div class="detail-section fade-in fade-in-delay-4">
                 <div class="section-header">
@@ -86,6 +111,60 @@
                 <div class="detail-fields" id="assignmentFields"></div>
             </div>
 
+            <!-- Attachments -->
+            <div class="detail-section full-width fade-in fade-in-delay-4">
+                <div class="section-header">
+                    <div class="icon blue">📎</div>
+                    Attachments & Invoices
+                    <button class="section-action-btn" id="uploadTrigger">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Upload
+                    </button>
+                </div>
+                <input type="file" id="fileInput" style="display:none" multiple>
+                <div id="attachmentsList" class="attachments-list">
+                    <div class="empty-section">No attachments yet</div>
+                </div>
+            </div>
+
+            <!-- Change History -->
+            <div class="detail-section full-width fade-in fade-in-delay-4">
+                <div class="section-header">
+                    <div class="icon green">📋</div>
+                    Change History
+                </div>
+                <div id="changeLogList" class="history-list">
+                    <div class="empty-section">No changes recorded</div>
+                </div>
+            </div>
+
+            <!-- User History -->
+            <div class="detail-section full-width fade-in fade-in-delay-4">
+                <div class="section-header">
+                    <div class="icon purple">👥</div>
+                    User Assignment History
+                </div>
+                <div id="userHistoryList" class="history-list">
+                    <div class="empty-section">No assignment history</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="editModal" style="display:none">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>Edit Asset</h2>
+                <button class="modal-close" id="editModalClose">&times;</button>
+            </div>
+            <form id="editForm" class="modal-body">
+                <!-- Populated by JS -->
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="editCancelBtn">Cancel</button>
+                <button type="button" class="btn-primary" id="editSaveBtn">Save Changes</button>
+            </div>
         </div>
     </div>
 
@@ -93,6 +172,7 @@
         // ── Get asset ID from URL ───────────────────────────
         const params = new URLSearchParams(window.location.search);
         const assetId = params.get('id');
+        let currentAsset = null;
 
         function fieldRow(label, value) {
             const isEmpty = !value || value === 'None' || value === 'null';
@@ -108,11 +188,22 @@
             if (!val) return null;
             try {
                 const s = String(val);
-                // Handle "2026-02-06 00:00:00" format
                 const dateStr = s.split(' ')[0];
                 const d = new Date(dateStr);
                 if (isNaN(d)) return s;
                 return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            } catch {
+                return val;
+            }
+        }
+
+        function formatDateTime(val) {
+            if (!val) return '—';
+            try {
+                const d = new Date(val);
+                if (isNaN(d)) return val;
+                return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' +
+                       d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
             } catch {
                 return val;
             }
@@ -138,6 +229,21 @@
             return '📦';
         }
 
+        function formatFileSize(bytes) {
+            if (!bytes) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let i = 0;
+            let size = bytes;
+            while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+            return `${size.toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
+        }
+
+        function formatCurrency(val) {
+            if (val === null || val === undefined) return '—';
+            return Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // ── Load Detail ─────────────────────────────────────
         async function loadDetail() {
             if (!assetId) {
                 document.getElementById('loadingState').style.display = 'none';
@@ -149,6 +255,7 @@
                 const res = await fetch(`/assets/${assetId}`);
                 if (!res.ok) throw new Error('Not found');
                 const a = await res.json();
+                currentAsset = a;
 
                 document.getElementById('loadingState').style.display = 'none';
                 document.getElementById('detailGrid').style.display = 'grid';
@@ -194,12 +301,23 @@
                     fieldRow('Used (Years)', a.used_years) +
                     fieldRow('End Date', formatDate(a.end_date));
 
+                // Depreciation
+                if (a.depreciation) {
+                    document.getElementById('depreciationSection').style.display = 'block';
+                    renderDepreciation(a.depreciation);
+                }
+
                 // Assignment Information
                 document.getElementById('assignmentFields').innerHTML =
                     fieldRow('Status', a.assignment_status) +
                     fieldRow("User's Name", a.users_name) +
                     fieldRow('Department', a.department) +
                     fieldRow('Assignment Date', formatDate(a.assignment_date));
+
+                // Load additional data
+                loadAttachments();
+                loadChangeLog();
+                loadUserHistory();
 
             } catch (err) {
                 console.error('Error loading detail:', err);
@@ -208,6 +326,278 @@
             }
         }
 
+        // ── Depreciation ────────────────────────────────────
+        function renderDepreciation(dep) {
+            const card = document.getElementById('depreciationCard');
+            const barColor = dep.is_expired ? 'var(--danger)' : (dep.remaining_pct > 50 ? 'var(--success)' : 'var(--warning)');
+            card.innerHTML = `
+                <div class="dep-stats">
+                    <div class="dep-stat">
+                        <div class="dep-stat-label">Original Price</div>
+                        <div class="dep-stat-value">${formatCurrency(dep.original_price)}</div>
+                    </div>
+                    <div class="dep-stat">
+                        <div class="dep-stat-label">Current Value</div>
+                        <div class="dep-stat-value highlight">${formatCurrency(dep.current_value)}</div>
+                    </div>
+                    <div class="dep-stat">
+                        <div class="dep-stat-label">Depreciated</div>
+                        <div class="dep-stat-value warn">${formatCurrency(dep.depreciation_amount)}</div>
+                    </div>
+                    <div class="dep-stat">
+                        <div class="dep-stat-label">Est. Resale</div>
+                        <div class="dep-stat-value">${formatCurrency(dep.estimated_resale)}</div>
+                    </div>
+                </div>
+                <div class="dep-bar-container">
+                    <div class="dep-bar-label">
+                        <span>Value Remaining</span>
+                        <span>${dep.remaining_pct}%</span>
+                    </div>
+                    <div class="dep-bar">
+                        <div class="dep-bar-fill" style="width: ${dep.remaining_pct}%; background: ${barColor}"></div>
+                    </div>
+                    <div class="dep-bar-info">
+                        <span>Age: ${dep.age_years} years</span>
+                        <span>Lifespan: ${dep.lifespan_years} years</span>
+                        <span class="dep-status ${dep.is_expired ? 'expired' : 'active'}">${dep.is_expired ? '⚠️ Expired' : '✅ Active'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ── Attachments ─────────────────────────────────────
+        async function loadAttachments() {
+            try {
+                const res = await fetch(`/assets/${assetId}/attachments`);
+                if (!res.ok) return;
+                const items = await res.json();
+                const list = document.getElementById('attachmentsList');
+
+                if (items.length === 0) {
+                    list.innerHTML = '<div class="empty-section">No attachments yet</div>';
+                    return;
+                }
+
+                list.innerHTML = items.map(a => `
+                    <div class="attachment-item">
+                        <div class="attachment-info">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            <div>
+                                <div class="attachment-name">${a.original_name}</div>
+                                <div class="attachment-meta">${formatFileSize(a.file_size)} · ${formatDateTime(a.upload_date)} · by ${a.uploaded_by}</div>
+                            </div>
+                        </div>
+                        <div class="attachment-actions">
+                            <a href="/attachments/${a.id}/download" class="att-btn download" title="Download">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            </a>
+                            <button class="att-btn delete" title="Delete" onclick="deleteAttachment(${a.id})">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Error loading attachments:', err);
+            }
+        }
+
+        document.getElementById('uploadTrigger').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files.length) return;
+
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    await fetch(`/assets/${assetId}/attachments`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+                } catch (err) {
+                    console.error('Upload failed:', err);
+                }
+            }
+            e.target.value = '';
+            loadAttachments();
+        });
+
+        async function deleteAttachment(id) {
+            if (!confirm('Delete this attachment?')) return;
+            try {
+                await fetch(`/attachments/${id}`, { method: 'DELETE' });
+                loadAttachments();
+            } catch (err) {
+                console.error('Delete failed:', err);
+            }
+        }
+
+        // ── Change Log ──────────────────────────────────────
+        async function loadChangeLog() {
+            try {
+                const res = await fetch(`/assets/${assetId}/changelog`);
+                if (!res.ok) return;
+                const items = await res.json();
+                const list = document.getElementById('changeLogList');
+
+                if (items.length === 0) {
+                    list.innerHTML = '<div class="empty-section">No changes recorded</div>';
+                    return;
+                }
+
+                list.innerHTML = items.map(e => `
+                    <div class="history-item">
+                        <div class="history-dot"></div>
+                        <div class="history-content">
+                            <div class="history-title">
+                                <strong>${e.changed_by}</strong> changed <span class="field-tag">${e.field_name}</span>
+                            </div>
+                            <div class="history-change">
+                                <span class="old-val">${e.old_value || '(empty)'}</span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                                <span class="new-val">${e.new_value || '(empty)'}</span>
+                            </div>
+                            <div class="history-time">${formatDateTime(e.changed_at)}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Error loading changelog:', err);
+            }
+        }
+
+        // ── User History ────────────────────────────────────
+        async function loadUserHistory() {
+            try {
+                const res = await fetch(`/assets/${assetId}/user-history`);
+                if (!res.ok) return;
+                const items = await res.json();
+                const list = document.getElementById('userHistoryList');
+
+                if (items.length === 0) {
+                    list.innerHTML = '<div class="empty-section">No assignment history</div>';
+                    return;
+                }
+
+                list.innerHTML = items.map(e => `
+                    <div class="history-item">
+                        <div class="history-dot user-dot"></div>
+                        <div class="history-content">
+                            <div class="history-title">
+                                <strong>${e.user_name}</strong>
+                                ${e.department ? `<span class="dept-tag">${e.department}</span>` : ''}
+                            </div>
+                            <div class="history-dates">
+                                <span>📅 Assigned: ${formatDateTime(e.assigned_date)}</span>
+                                ${e.returned_date ? `<span>↩️ Returned: ${formatDateTime(e.returned_date)}</span>` : '<span class="active-tag">Currently Assigned</span>'}
+                            </div>
+                            <div class="history-time">Assigned by ${e.assigned_by}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Error loading user history:', err);
+            }
+        }
+
+        // ── Edit Modal ──────────────────────────────────────
+        const editableFields = [
+            { key: 'type', label: 'Type' },
+            { key: 'owner', label: 'Owner' },
+            { key: 'brand', label: 'Brand' },
+            { key: 'model', label: 'Model' },
+            { key: 'serial_no', label: 'Serial No.' },
+            { key: 'cpu', label: 'CPU' },
+            { key: 'ram', label: 'RAM' },
+            { key: 'storage', label: 'Storage' },
+            { key: 'price', label: 'Price' },
+            { key: 'assignment_status', label: 'Status', type: 'select', options: ['Available', 'Occupied', 'Faulty'] },
+            { key: 'users_name', label: "User's Name" },
+            { key: 'department', label: 'Department' },
+        ];
+
+        document.getElementById('editBtn').addEventListener('click', () => {
+            if (!currentAsset) return;
+            const form = document.getElementById('editForm');
+            form.innerHTML = editableFields.map(f => {
+                const val = currentAsset[f.key] || '';
+                if (f.type === 'select') {
+                    return `
+                        <div class="form-group">
+                            <label>${f.label}</label>
+                            <select name="${f.key}">
+                                ${f.options.map(o => `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`).join('')}
+                            </select>
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="form-group">
+                        <label>${f.label}</label>
+                        <input type="text" name="${f.key}" value="${val}">
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('editModal').style.display = 'flex';
+        });
+
+        document.getElementById('editModalClose').addEventListener('click', () => {
+            document.getElementById('editModal').style.display = 'none';
+        });
+        document.getElementById('editCancelBtn').addEventListener('click', () => {
+            document.getElementById('editModal').style.display = 'none';
+        });
+
+        document.getElementById('editSaveBtn').addEventListener('click', async () => {
+            const form = document.getElementById('editForm');
+            const data = {};
+            editableFields.forEach(f => {
+                const el = form.querySelector(`[name="${f.key}"]`);
+                if (el) data[f.key] = el.value;
+            });
+
+            try {
+                const res = await fetch(`/assets/${assetId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+                if (!res.ok) throw new Error('Update failed');
+                document.getElementById('editModal').style.display = 'none';
+                // Reload all data
+                loadDetail();
+            } catch (err) {
+                alert('Failed to save changes: ' + err.message);
+            }
+        });
+
+        // Close modal on overlay click
+        document.getElementById('editModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                e.currentTarget.style.display = 'none';
+            }
+        });
+
+        // ── Delete Asset ─────────────────────────────────────
+        document.getElementById('deleteAssetBtn').addEventListener('click', async () => {
+            if (!currentAsset) return;
+            const code = currentAsset.tracking_code || `ID:${assetId}`;
+            if (!confirm(`Delete asset "${code}"? This will remove all attachments, history, and change logs. This cannot be undone.`)) return;
+            try {
+                const res = await fetch(`/assets/${assetId}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Delete failed');
+                window.location.href = '/';
+            } catch (err) {
+                alert('Failed to delete: ' + err.message);
+            }
+        });
+
+        // ── Init ────────────────────────────────────────────
         loadDetail();
     </script>
 </body>
